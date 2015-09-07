@@ -9,7 +9,7 @@
 -}
 
 module Main where
-import Prelude hiding (all, reverse, takeWhile, zip, concat, concatMap)
+import Prelude  hiding (all, reverse, takeWhile, zip, concat, concatMap)
 import Test.HUnit 
 
 main :: IO ()
@@ -75,8 +75,17 @@ testLists = "testLists" ~: TestList [tintersperse, tinvert, ttakeWhile, tfind, t
 -- For example,
 --    intersperse ',' "abcde" == "a,b,c,d,e"
 
+intersperse :: a -> [a] -> [a] 
+intersperse _ []           = []
+intersperse _ [x]          = [x]
+intersperse element (x:xs) = x:element:intersperse element xs
+
 tintersperse :: Test
-tintersperse = "intersperse" ~: assertFailure "testcase for intersperse"
+tintersperse = "intersperse" ~:
+  TestList [ intersperse '_' [] ~?= [],
+             intersperse '-' "i" ~?= "i",
+             intersperse ',' "abcde" ~?= "a,b,c,d,e",
+             intersperse 0 [1,2,3] ~?= [1,0,2,0,3]]
 
 
 -- invert lst returns a list with each pair reversed. 
@@ -87,9 +96,15 @@ tintersperse = "intersperse" ~: assertFailure "testcase for intersperse"
 --   note, you need to add a type annotation to test invert with []
 --    
 
+invert :: [(a, b)] -> [(b, a)]
+invert []          = []
+invert ((a, b):xs) = (b, a) : invert xs 
+
 tinvert :: Test
-tinvert = "invert" ~: assertFailure "testcase for invert"
- 
+tinvert = "invert" ~: 
+  TestList [ invert ([] :: [(Int, Char)]) ~?= [],
+             invert [(1, "a"), (4, "z")] ~?= [("a", 1), ("z", 4)] ]
+
 
 -- takeWhile, applied to a predicate p and a list xs, 
 -- returns the longest prefix (possibly empty) of xs of elements 
@@ -99,8 +114,18 @@ tinvert = "invert" ~: assertFailure "testcase for invert"
 --     takeWhile (< 9) [1,2,3] == [1,2,3]
 --     takeWhile (< 0) [1,2,3] == []
 
+takeWhile :: (a->Bool) -> [a] -> [a]
+takeWhile _ [] = []
+takeWhile pred (x:xs) 
+  | pred x    = x : takeWhile pred xs
+  | otherwise = []
+
 ttakeWhile :: Test
-ttakeWhile = "takeWhile" ~: assertFailure "testcase for takeWhile"
+ttakeWhile = "takeWhile" ~:
+  TestList [ takeWhile (> 1) [] ~?= [],
+             takeWhile (< 3) [1,2,3,4,5] ~?= [1,2],
+             takeWhile (== 'a') "aabcad" ~?= "aa",
+             takeWhile (> 10) [1,3,4,7,10] ~?= [] ]
  
 
 -- find pred lst returns the first element of the list that 
@@ -109,8 +134,19 @@ ttakeWhile = "takeWhile" ~: assertFailure "testcase for takeWhile"
 -- for example: 
 --     find odd [0,2,3,4] returns Just 3
 
+find :: (a -> Bool) -> [a] -> Maybe a
+find _ [] = Nothing
+find pred (x:xs) 
+  | pred x = Just x
+  | otherwise = find pred xs
+
+
 tfind :: Test
-tfind = "find" ~: assertFailure "testcase for find"
+tfind = "find" ~:
+  TestList [ find (> 100) ([] :: [Int]) ~?= Nothing,
+             find even [1,3,2,4,6] ~?= Just 2,
+             find (== 0) [1,3,5] ~?= Nothing ]
+
  
 
 -- all pred lst returns False if any element of lst fails to satisfy
@@ -118,9 +154,16 @@ tfind = "find" ~: assertFailure "testcase for find"
 -- for example:
 --    all odd [1,2,3] returns False
 
+all :: (a -> Bool) -> [a] -> Bool
+all pred = foldr (\x y -> pred x && y ) True
+
 tall :: Test
-tall = "all" ~: assertFailure "testcase for all"
- 
+tall = "all" ~:
+  TestList [ all (== 0) ([] :: [Int]) ~?= True,
+             all odd [1,3,5] ~?= True,
+             all even [2,3,4] ~?= False ]
+
+
 
 -- map2 f xs ys returns the list obtained by applying f to 
 -- to each pair of corresponding elements of xs and ys. If 
@@ -132,10 +175,18 @@ tall = "all" ~: assertFailure "testcase for all"
 --
 -- NOTE: map2 is called zipWith in the standard library.
 
-
+map2 :: (a -> b -> c) -> [a] -> [b] -> [c]
+map2 _ [] _          = []
+map2 _ _ []          = []
+map2 f (x:xs) (y:ys) = f x y : map2 f xs ys 
 
 tmap2 :: Test
-tmap2 = "map2" ~: assertFailure "testcase for map2"
+tmap2 = "map2" ~:
+  TestList [ map2 (+) ([] ::[Int]) ([] ::[Int]) ~?= [],
+             map2 (+) [1,2,3] [10,20,30,40] ~?= [11,22,33],
+             map2 (\x y -> (x,y)) [1,2,3,4] "abc" ~?= [(1,'a'),(2,'b'),(3,'c')] ]
+
+
 
 -- zip takes two lists and returns a list of corresponding pairs. If
 -- one input list is shorter, excess elements of the longer list are
@@ -143,10 +194,17 @@ tmap2 = "map2" ~: assertFailure "testcase for map2"
 -- for example:  
 --    zip [1,2] [True] returns [(1,True)]
 
-
+zip :: [a] -> [b] -> [(a,b)]
+zip _ [] = []
+zip [] _ = []
+zip (x:xs) (y:ys) = (x,y) : zip xs ys
 
 tzip :: Test
-tzip = "zip" ~: assertFailure "testcase(s) for zip"
+tzip = "zip" ~:
+  TestList [ zip ([] :: [Int]) "abc" ~?= [],
+             zip [1,2,3] ["one","two","three"]
+               ~?= [(1,"one"),(2,"two"),(3,"three")],
+             zip [1,2] [0.1,0.2,0.3] ~?= [(1,0.1),(2,0.2)] ]
 
 -- transpose  (WARNING: this one is tricky!)
 
