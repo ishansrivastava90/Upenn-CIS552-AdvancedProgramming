@@ -330,7 +330,7 @@ Recursive with do notation
 
 > string' :: String -> Parser String
 > string' []    = return ""
-> string (c:cs) = do
+> string' (c:cs) = do
 >         c'  <- char c
 >         cs' <- string cs
 >         return (c' : cs')
