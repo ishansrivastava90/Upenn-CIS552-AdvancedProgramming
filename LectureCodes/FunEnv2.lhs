@@ -20,14 +20,14 @@ and the body of the functions.
 >    IntVal  Int
 >  | BoolVal Bool
 >  -- new! function values
->  | FunVal Variable Expression
+>  | FunVal Variable Expression Environment
 
 This version has the advantage that we can show a function value!
 
 > instance Show Value where
 >     show (IntVal i)    = show i
 >     show (BoolVal b)   = show b
->     show (FunVal x e)  = indented (Fun x e)
+>     show (FunVal x e _)  = indented (Fun x e)
 
 The evaluator for binary expressions remains the same.
 
@@ -68,13 +68,26 @@ As does most of our environment-based evaluator from before.
 The difference is in the cases for functions and applications. For functions,
 we'll just create a function value straightaway.
 
-> eval (Fun x e)     s    = undefined
+> --eval (Fun x e)     s    = eval e s
+> eval (Fun x e)    s    = FunVal x e s
 
 For applications, once we've retrieved the function value, and the value of
 the argument we can evaluate the function body. But which environment should
 we use?
 
-> eval (App fun arg) s    = undefined
+> --eval' (App fun arg) s    = let v = eval arg s 
+> --                              p = getParam fun in
+> --                               case p of 
+> --                                 Just x -> eval fun (Map.insert x v s)
+> --                                 _      -> IntVal 0
+
+> eval (App fun arg) s   = let (FunVal x e s')  = (eval fun s) 
+>                              v                = (eval arg s)
+>                          in eval e (Map.insert x v s')
+
+> getParam :: Expression -> Maybe Variable
+> getParam (Fun x e) = Just x
+> getParam _         = Nothing
 
 
 We have the same REPL as before. 
@@ -103,8 +116,8 @@ However, not everything from before will work.
 
 Furthermore, we may notice something strange with this evaluator...
 
-> parseAndEval s = liftM (\x -> eval x Map.empty) (parse s)
+>-- parseAndEval s = liftM (\x -> eval x Map.empty) (parse s)
 
 What is going on in this example?
 
-> p1 = parseAndEval "let X = 3 in let F = fun Y -> X + Y in let X = 5 in F 4"
+> --p1 = parseAndEval "let X = 3 in let F = fun Y -> X + Y in let X = 5 in F 4"

@@ -1,11 +1,13 @@
+> {-# LANGUAGE FlexibleContexts, FlexibleInstances, OverlappingInstances #-}
+
 Interpreters for functional programming languages
 =========================================================
 
 Interpreters
 ------------
 
-> {-# LANGUAGE FlexibleContexts, FlexibleInstances, OverlappingInstances #-}
 > module FunEnv where
+
 
 > import Data.Map (Map)
 > import qualified Data.Map as Map
@@ -116,7 +118,7 @@ The value of a function expression is a Haskell function (whose
 argument will be used to provide the value of the bound variable when
 evaluating the body of the function).  
 
-> eval (Fun x e)     s    = undefined
+> eval (Fun x e)     s    = FunVal $ \v -> eval e (Map.insert x v s)
 
 
 (Make sure you understand this bit -- it's the crux of the matter!)
@@ -124,7 +126,11 @@ evaluating the body of the function).
 We can then evaluate a function application by applying the function
 value to its argument.
 
-> eval (App fun arg) s    = undefined
+> eval (App fun arg) s    = let fval = eval fun s in 
+>                           let aval = eval arg s in
+>   case fval of
+>     FunVal f ->  f aval 
+>     _        -> IntVal 0
 
 
 Finally, in the case of a recursive definition for x, we need to
@@ -132,7 +138,9 @@ evaluate the right-hand-side using a store that maps x to the value
 that we are currently computing?!  Whoa!  We're using a Haskell
 recursive definition to define recursive definitions in FUN.
 
-> eval (Let x e1 e2) s = undefined
+> eval (Let x e1 e2) s = let v  = eval e1 s'
+>                            s' = Map.insert x v s in
+>                        eval e2 s'
 
 Let's give it a try!
 
