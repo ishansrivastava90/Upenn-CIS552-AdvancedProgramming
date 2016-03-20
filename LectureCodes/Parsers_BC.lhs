@@ -136,13 +136,14 @@ Here's a *very* simple character parser that returns the first `Char`
 from a (nonempty) string:
 
 > oneChar :: Parser Char
-> oneChar = P (\s -> case s of 
+> oneChar = P (\s -> case s of
 >                 ""     -> []
 >                 (c:cs) -> [(c,cs)] )
 
 ~~~~~{.haskell}
     ghci> doParse oneChar "hey!"
-    ghci> doParse oneChar ""
+    ghci> doPa
+    rse oneChar ""p
 ~~~~~
 
 
@@ -154,19 +155,9 @@ the first two `Char` values from the front of the input string:
 
 
 > twoChar0 :: Parser (Char, Char)
-> twoChar0 = P (\s -> [ ( (c1, c2), s2) |
->                        (c1,s1) <- doParse oneChar s,
->                        (c2,s2) <- doParse oneChar s1])                        
-
-
-
-
-
-
-
-
-
-
+> twoChar0 = P (\s -> [((c1, c2), s2) | 
+>                         (c1,s1) <- doParse oneChar s,
+>                         (c2,s2) <- doParse oneChar s1 ])
 
 
 More generally, we can write a *parser combinator* that takes two
@@ -174,9 +165,9 @@ parsers and returns a new parser that uses first one and then the
 other and returns the pair of resulting values...
 
 > pairP0 ::  Parser a -> Parser b -> Parser (a,b)
-> pairP0 p1 p2 = P (\s -> [ ( (c1, c2), s2) |
->                        (c1,s1) <- doParse p1 s,
->                        (c2,s2) <- doParse p2 s1]) 
+> pairP0 p1 p2 = P (\s -> [((c1, c2), s2) | 
+>                         (c1,s1) <- doParse p1 s,
+>                         (c2,s2) <- doParse p2 s1 ])
 
 and use that to rewrite 'twoChar' more elegantly like this:
 
@@ -197,8 +188,7 @@ bigger picture.  Here's the *type* of a parser:
 It might remind you of something else... Remember this?
 
 ~~~~~{.haskell}
-    newtype State s a = S { runState :: s -> (a, s) }
-~~~~~
+    newtype State s a = S { runState :: s -> (a, s) 
 
 
 Parser is A Monad
@@ -212,13 +202,13 @@ guide us.  We ignore the input string (keeping the whole thing as the
 "remainder after parsing") and just return the given value.
 
 > returnP :: a -> Parser a
-> returnP x = P $ \s -> [ (x,s) ]
+> returnP x = P (\s -> [(x,s)]) 
 
 The bind is a bit more tricky, but again, we can lean on the types:
 
 > bindP :: Parser a -> (a -> Parser b) -> Parser b
-> p1 `bindP` fp2 = P $ \s -> let l = doParse p1 s in
->                                concatMap (\ (x,s') -> doParse (fp2 x) s') l
+> p1 `bindP` fp2 = P (\s -> let lt = doParse p1 s in
+>                             concatMap (\(x,s') -> doParse (fp2 x) s') lt)
 
 That is, we just need to suck the `a` values out of the first parser
 and invoke the second parser with them, passing it the remaining part
@@ -259,7 +249,7 @@ We can even dip into the Control.Monad library and write `pairP` even
 more succinctly:
 
 > pairP' :: Parser a -> Parser b -> Parser (a,b)
-> pairP' = liftM2 (,)
+> pairP' = liftM2 (,)  
 
 
 
@@ -268,7 +258,7 @@ will be helpful to have a *failure* parser that always goes down in
 flames (returns `[]`):
 
 > failP :: Parser a
-> failP = P $ \s -> []
+> failP = P (\s -> [])
 
 
 
@@ -280,8 +270,9 @@ parsers like the following, which parses a `Char` *if* it satisfies a
 predicate `p`:
 
 > satP ::  (Char -> Bool) -> Parser Char
-> satP b = do c <- oneChar
->             if (b c) then return c else failP              
+> satP b = do 
+>          c <- oneChar
+>          if (b  c) then return c else failP
 
 
 Note that we are working abstractly here: we can define `satP` without
@@ -303,12 +294,9 @@ respectively (`isAlpha` and `isDigit` come from the standard Prelude).
 And this little fellow returns the first digit in a string as an `Int`:
 
 > digitInt :: Parser Int
-> digitInt = fmap (\c -> ord c - ord '0') digitChar
-> {-  
-> do 
+> digitInt = do 
 >   c <- digitChar
 >   return $ ord c - ord '0'
-> -}
 
 ~~~~~{.haskell}
     ghci> doParse digitInt "92"
@@ -318,7 +306,7 @@ And this little fellow returns the first digit in a string as an `Int`:
 Finally, this parser will parse just one specific `Char`:
 
 > char :: Char -> Parser Char
-> char c = satP (== c)
+> char c = satP (==c)
 
 ~~~~~~~~~~~{.haskell}
     ghci> doParse (char 'a') "ab" 
@@ -334,16 +322,19 @@ recursion to our combinators. For example, it's all very well to parse
 individual characters (as in `char` above), but it would a lot more
 fun if we could recognize whole `String`s.
 
-Let's try to write it! 
 
 > string :: String -> Parser String
-> string []     = return ""
-> string (c:cs) = do
->    c'  <- char c
->    cs' <- string cs
->    return (c' : cs')
+> string s = sequence  [char x | x <- s] 
 
-> string' cs = sequence (map char cs)
+Recursive with do notation
+
+> string' :: String -> Parser String
+> string' []    = return ""
+> string' (c:cs) = do
+>         c'  <- char c
+>         cs' <- string cs
+>         return (c' : cs')
+
 
 Much better!
 
@@ -366,7 +357,7 @@ How to write it?  Well, we want to return a succesful parse if
 *either* parser succeeds. Since our parsers return multiple values, we
 can simply return the *union* of all the results!
 
-> p1 `chooseP` p2 = P (\s -> doParse p1 s ++ doParse p2 s) 
+> p1 `chooseP` p2 = undefined
 
 We can use the above combinator to build a parser that 
 returns either an alphabet or a numeric character
@@ -376,7 +367,7 @@ returns either an alphabet or a numeric character
 ~~~~~{.haskell}
     ghci> doParse alphaNumChar "cat"
     ghci> doParse alphaNumChar "2cat"
-    ghci> doParse alphaNumChar " 2at"
+    ghci> doParse alphaNumChar "2at"
 ~~~~~
 
 If *both* parsers succeed, we get back all the results. For example,
@@ -412,7 +403,6 @@ Even with just these rudimentary parsers we have at our disposal, we
 can start doing some interesting things. For example, here is a little
 calculator. First, we parse arithmetic operations as follows:
 
-
 > intOp = plus `chooseP` minus `chooseP` times `chooseP` divide 
 >   where plus   = char '+' >> return (+)
 >         minus  = char '-' >> return (-)
@@ -423,10 +413,7 @@ calculator. First, we parse arithmetic operations as follows:
 simple expressions
 
 > calc :: Parser Int
-> calc = do x <- digitInt
->           op <- intOp            
->           y <- digitInt
->           return (x `op` y)
+> calc = undefined
 
 which, when run, will perform both parsing and calculation.
 
@@ -451,9 +438,7 @@ We can do this by writing a parser that either succeeds without consuming any
 input or parses one thing (if possible) and then calls itself recursively.
 
 > manyP :: Parser a -> Parser [a]
-> manyP p = (do x <- p
->               xs <- manyP p
->               return (x : xs)) `chooseP` return []
+> manyP p = undefined
 
 
 
@@ -476,22 +461,13 @@ combinator. This combinator returns no more than one result -- i.e.,
 it runs the choice parser but discards extra results.
 
 > chooseFirstP :: Parser a -> Parser a -> Parser a
-> chooseFirstP p1 p2 = P $ \s -> let x = doParse p1 s in
->                                case x of 
->                                  []    -> take 1 (doParse p2 s) 
->                                  (a:_) -> [ a ] 
-
-
-
+> chooseFirstP p1 p2 = undefined
 
 We can use deterministic choice and failure together to make the `Parser` type an instance
 of the `Alternative` type class from [Control.Applicative](https://hackage.haskell.org/package/base-4.8.1.0/docs/Control-Applicative.html).
 
 > instance Alternative Parser where
->    -- empty :: Parser a 
 >    empty = failP
->
->    -- (<|>) :: Parser a -> Parser a -> Parser a
 >    (<|>) = chooseFirstP
 
 This instance automatically gives us definitions of the functions `many` and
@@ -517,8 +493,7 @@ Let's use the above to write a parser that will return an entire
 natural number (not just a single digit.)
 
 > oneNat0 :: Parser Int
-> oneNat0 = do x <- many digitChar
->              return (read x :: Int)               
+> oneNat0 = undefined
 
 
 
@@ -535,7 +510,7 @@ Aha! a lot like `map`. Indeed, we can use `fmap` from the `Functor` instance
 to rewrite our number parser like this:
 
 > oneNat1 :: Parser Int
-> oneNat1 = read `fmap` many digitChar 
+> oneNat1 = undefined
 
 ~~~~~{.haskell}
     ghci> doParse oneNat1 "12345a"
@@ -547,7 +522,7 @@ before we do the read. For that we can use the `some` function, which
 succeeds only if the given parser succeeds at least once.
 
 > oneNat :: Parser Int
-> oneNat = read `fmap` some digitChar
+> oneNat = undefined
 
 ~~~~~{.haskell}
     ghci> doParse oneNat "12345a"
@@ -630,40 +605,23 @@ parser into different levels.  Here, let's split our binary operations
 into addition-like and multiplication-like ones.
 
 > addOp :: Parser (Int -> Int -> Int)
-> addOp = plus `chooseP` minus
->          where plus  = char '+' >> return (+)
->                minus = char '-' >> return (-)                 
+> addOp = undefined
 >
 > mulOp :: Parser (Int -> Int -> Int)
-> mulOp = times `chooseP` divide
->          where times = char '*' >> return (*)                 
->                divide = char '/' >> return div
+> mulOp = undefined
 
 Now, we can stratify our language into mutually recursive
 sub-languages, where each top-level expression is parsed as a
 *sum-of-products*
 
 > sumE :: Parser Int
-> sumE = addE <|> prodE
->   where addE = do x <- prodE 
->                   op <- addOp                    
->                   y <- sumE
->                   return $ x `op` y
+> sumE = undefined
 
 > prodE :: Parser Int
-> prodE = mulE <|> factorE 
->   where mulE = do x <- factorE
->                   op <- mulOp                    
->                   y <- prodE
->                   return $ x `op` y
+> prodE = undefined
 >
-
 > factorE :: Parser Int
-> factorE = parenE <|> oneNat
->   where parenE = do char '('
->                     n <- sumE                 
->                     char ')'
->                     return n
+> factorE = undefined
 
 ~~~~~{.haskell}
     ghci> doParse sumE "10*2+100"
@@ -758,22 +716,13 @@ pattern: the only differences are the *base* parser (`prodE1` vs
 make those parameters to our *chain-left* combinator:
 
 > chainl :: Parser b -> Parser (b -> b -> b) -> Parser b
-> p `chainl` pop = p >>= rest 
->   where rest x = next x <|> return x
->         next x = do o <- pop
->                     y <- p 
->                     rest $ x `o` y
-  
-
+> p `chainl` pop = undefined
 
 Similarly, we often want to parse bracketed expressions, so we can
 write a combinator
 
 > parenP :: Char -> Parser b -> Char -> Parser b
-> parenP l p r = do char l
->                   x <- p                    
->                   char r
->                   return x
+> parenP l p r = undefined
 
 after which we can rewrite the grammar in three lines:
 
