@@ -1,0 +1,52 @@
+Review for submission : 19
+
+Answer the following questions about the `dpll` function in the submission:
+
+1. Does this function reuse code from earlier parts of the assignment
+(such as simplifyUnitClause) for sat2, or does it rewrite these steps?
+
+-Yes. It uses the individual simplifyUnitClause and simplifyPureLiteral
+
+
+2. How difficult would it be to add an additional simplification step to this
+algorithm?  In particular, a simplification step has the type
+      CNF -> Maybe (CNF, Var, Bool)
+meaning that it transforms the formula to a simpler form by instantiating a
+particular variable. 
+
+- Yes. It is very easy to extend to add additional simplification steps as it is just an additional
+condition with a guard and then using the simplifications
+dpll :: Solver                                                                                                          
+dpll cnf = sat cnf emptyValuation where                                                                                 
+sat [] val = Just val                                                                                                 
+sat c val                                                                                                             
+   | falsified c = Nothing                                                                                             
+   | isJust u = let (c', v', b') = fromJust u in sat c' (extend v' b' val)  -- Add a new let binding for new simplification                                           
+   | isJust p = let (c', v', b') = fromJust p in sat c' (extend v' b' val)                                             
+   | isJust satTrue = satTrue                                                                                          
+   | isJust satFalse = satFalse                                                                                        
+   | otherwise = Nothing                                                                                               
+     where                                                                                                               
+       u = simplifyUnitClause c                   -- Add the simplification method with the specified type                                                                      
+       p = simplifyPureLiteral c                                                                                         
+       v = nextVar c                                                                                                     
+       t = instantiate c v True                                                                                          
+       f = instantiate c v False                                                                                         
+       satTrue  = sat t (extend v True val)                                                                              
+       satFalse = sat f (extend v False val)      
+
+3. Is the implementation of DPLL  "short"? Is it easy to see the structure of
+the solver just by looking at this code? 
+
+-Yes. It consists of modular code with pattern matches which expresses the intent of every block clearly. It's easy to see a
+simplification step and the actual sat function call
+ 
+4. What suggestions can you make to improve their design?
+- The design overall seems fine to me. At some places, I would like the let bindings to have more expressive names.
+ 
+5. What is the best part of their design?
+- It's very simple and mostly pattern matching. The design also abstracts previously defined methods
+and uses them in the subsequent definitions and it makes it very easier to understand the whole
+implementation.
+ 
+

@@ -1,0 +1,41 @@
+Review for submission : 18
+
+Answer the following questions about the `dpll` function in the submission:
+
+1. Does this function reuse code from earlier parts of the assignment
+(such as simplifyUnitClause) for sat2, or does it rewrite these steps?
+- Yes. It does reuse simplifyUnitClause and simplifyPureLiteral
+
+2. How difficult would it be to add an additional simplification step to this
+algorithm?  In particular, a simplification step has the type
+
+      CNF -> Maybe (CNF, Var, Bool)
+
+meaning that it transforms the formula to a simpler form by instantiating a
+particular variable. 
+
+- The design ensures that dpll uses a function to simplifyUnitClauses (tryUnitClauses) and in case
+it returns a Nothing, try simplifyPureLiteral and then instantiate the cnf. So, it chains all
+the simplification steps. For a new simplification step, just needs a function to be invoked
+from the last simplification that was made.
+
+ 
+3. Is the implementation of DPLL  "short"? Is it easy to see the structure of
+the solver just by looking at this code? 
+
+- Decently short. The implementation spans invocation of a series of methods one after the other, so it takes
+a while to get the complete picture. Need to understand the orchestration as well as the functionality.
+Could have been easier with pattern matching
+
+ 
+4. What suggestions can you make to improve their design?
+
+- As I mentioned earlier, their design involves a series of function applications 1 after the other which 
+is I believe is less expressive than abstracting out a pattern since all these functions have similar structures
+and then pattern matching on the dpll function. 
+ 
+
+5. What is the best part of their design?
+
+- The design uses some associative binary operation and other higher order library functions 
+consistently and it leads to concise code and less ambiguity.

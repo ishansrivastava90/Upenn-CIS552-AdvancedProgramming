@@ -26,6 +26,7 @@ testStyle :: Test
 testStyle = "testStyle" ~:
    TestList [ tabc , tarithmetic, treverse, tapplyFunc ]
 
+-- | Evaluating a boolean expression.
 abc :: Bool -> Bool -> Bool -> Bool
 abc x y z = x && (y || z)
 
@@ -38,6 +39,7 @@ tabc = "abc" ~: TestList [abc True False True ~?= True,
 arithmetic :: ((Int, Int), Int) -> ((Int, Int), Int) -> (Int, Int, Int)
 arithmetic ((a, b), c) ((d, e), f) =  (b*f - c*e, c*d - a*f, a*e - b*d)
 
+
 tarithmetic :: Test
 tarithmetic = "arithmetic" ~:
    TestList[ arithmetic ((1,2),3) ((4,5),6) ~?= (-3,6,-3), 
@@ -46,7 +48,11 @@ tarithmetic = "arithmetic" ~:
 -- | Reverses a list.
 reverse :: [a] -> [a]
 reverse []       = []
-reverse (x : xs) = (reverse xs)  ++ [x]
+reverse (x:xs) = reverse xs ++ [x]
+
+-- OR
+-- reverse :: [a] -> [a]
+-- reverse = foldl (flip (:)) []
 
 treverse :: Test
 treverse = "reverse" ~: TestList [reverse [3,2,1] ~?= [1,2,3],
@@ -54,7 +60,7 @@ treverse = "reverse" ~: TestList [reverse [3,2,1] ~?= [1,2,3],
 
 -- | Apply functions to corresponding arguments.
 applyFunc :: [a -> b] -> [a] -> [b]
-applyFunc (f : fs) (a : as) =  f a : applyFunc fs as 
+applyFunc (f : fs) (x : xs) =  f x : applyFunc fs xs 
 applyFunc _ _               = []
 
 tapplyFunc:: Test
@@ -94,11 +100,10 @@ tintersperse = "intersperse" ~:
 --   invert ([] :: [(Int,Char)])  returns []
 
 --   note, you need to add a type annotation to test invert with []
---    
 
-invert :: [(a, b)] -> [(b, a)]
+invert :: [(a,b)] -> [(b,a)]
 invert []          = []
-invert ((a, b):xs) = (b, a) : invert xs 
+invert ((a,b):xs) = (b,a) : invert xs 
 
 tinvert :: Test
 tinvert = "invert" ~: 
@@ -116,8 +121,8 @@ tinvert = "invert" ~:
 
 takeWhile :: (a->Bool) -> [a] -> [a]
 takeWhile _ [] = []
-takeWhile pred (x:xs) 
-  | pred x    = x : takeWhile pred xs
+takeWhile p (x:xs) 
+  | p x    = x : takeWhile p xs
   | otherwise = []
 
 ttakeWhile :: Test
@@ -136,9 +141,9 @@ ttakeWhile = "takeWhile" ~:
 
 find :: (a -> Bool) -> [a] -> Maybe a
 find _ [] = Nothing
-find pred (x:xs) 
-  | pred x = Just x
-  | otherwise = find pred xs
+find p (x:xs) 
+  | p x = Just x
+  | otherwise = find p xs
 
 
 tfind :: Test
@@ -155,7 +160,7 @@ tfind = "find" ~:
 --    all odd [1,2,3] returns False
 
 all :: (a -> Bool) -> [a] -> Bool
-all pred = foldr (\x y -> pred x && y ) True
+all p = foldr (\x y -> p x && y ) True
 
 tall :: Test
 tall = "all" ~:
@@ -206,38 +211,48 @@ tzip = "zip" ~:
                ~?= [(1,"one"),(2,"two"),(3,"three")],
              zip [1,2] [0.1,0.2,0.3] ~?= [(1,0.1),(2,0.2)] ]
 
--- transpose  (WARNING: this one is tricky!)
 
+
+-- transpose  (WARNING: this one is tricky!)
 -- The transpose function transposes the rows and columns of its argument. 
 -- If the inner lists are not all the same length, then the extra elements
 -- are ignored.
 -- for example:
 --    transpose [[1,2,3],[4,5,6]] returns [[1,4],[2,5],[3,6]]
 
-
-
 ttranspose :: Test
 ttranspose = "transpose" ~: assertFailure "testcase for transpose"
 
+
+
 -- concat
- 
 -- The concatenation of all of the elements of a list of lists
 -- for example:
 --    concat [[1,2,3],[4,5,6],[7,8,9]] returns [1,2,3,4,5,6,7,8,9]
  
-
+concat ::[[a]] -> [a]
+concat = foldr (++) []
  
 tconcat :: Test
-tconcat = "concat" ~: assertFailure "testcase for concat"
+tconcat = "concat" ~: 
+  TestList [ concat ([] ::[[Int]]) ~?= [],
+             concat [[1,2],[],[5,6,7]] ~?= [1,2,5,6,7],
+             concat [[1,2,3],[4,5],[6,7,9]] ~?= [1,2,3,4,5,6,7,9] ]
+
+
 
 -- concatMap
- 
 -- Map a function over all the elements of the list and concatenate the results.
 -- for example:
 --    concatMap (\x -> [x,x+1,x+2]) [1,2,3]  returns [1,2,3,2,3,4,3,4,5]
- 
+
+concatMap :: (a -> [b]) -> [a] -> [b]
+concatMap f l = concat [f x | x <- l]
+
 tconcatMap :: Test
-tconcatMap = "concatMap" ~: assertFailure "testcase for concatMap"
+tconcatMap = "concatMap" ~: 
+  TestList [ concatMap (\x -> [x,x+1,x+2]) [1,2,3] ~?= [1,2,3,2,3,4,3,4,5] ]
+             
 
 --------------------------------------------------------------------------------
 
@@ -253,32 +268,76 @@ bowlingTest1 score =
 
 score1 :: [ Int ] -> Int
 score1 = score where
-   score _ = 0
+   score [] = 0
+   score (x:xs) = x + score xs
 
 bowlingTest2 :: ([ Int ] -> Int) -> Test
-bowlingTest2 _ = "always fail" ~: assertFailure "add a test case"
+bowlingTest2 score = 
+   "always fail" ~: 29 ~?= score ([3,7] ++ (replicate 18 1))
 
 score2 :: [ Int ] -> Int
 score2 = score where
-   score _ = 0
+  score []    = 0
+  score [x]   = x
+  score (x:y:xs) 
+    | (x+y == 10) = 10 + bonus xs + score xs
+    | otherwise = x + y + score xs
+
+bonus :: [ Int ] -> Int
+bonus [] = 0
+bonus (x:_) = x
 
 score2a :: [ Int ] -> Int
 score2a = score where
    score = score2
 
 bowlingTest3 :: ([ Int ] -> Int) -> Test
-bowlingTest3 _ = "always fail" ~: assertFailure "add a test case"
+bowlingTest3 score = 
+   "always fail" ~: 44 ~?= score ([10] ++[3,6] ++ (replicate 16 1))
 
 score3 :: [ Int ] -> Int
 score3 = score where
-   score _ = 0
+  score []    = 0
+  score [x]   = x
+  score (x:y:xs) 
+    | (x == 10) = 10 + y + bonus xs + score (y:xs)
+    | (x+y == 10) = 10 + bonus xs + score xs
+    | otherwise = x + y + score xs
 
 bowlingTest4 :: ([ Int ] -> Int) -> Test
 bowlingTest4 score = "perfect game" ~: 300 ~=? score (replicate 12 10) 
 
 score4 :: [ Int ] -> Int
 score4 = score where
-     score _ = 0
+  score (x:y:xs) 
+    | (x == 10 && length (y:xs) == 2)  = 10 + strikeBonus (y:xs)  -- Case: Last Strike with 2 additional bonus.
+    | (x == 10 && length (y:xs) > 2)   = 10 + strikeBonus (y:xs) + score (y:xs)
+    | (x+y == 10)                      = 10 + spareBonus xs + score xs
+    | otherwise                        = x + y + score xs
+    where
+      spareBonus (a:_)    = a
+      spareBonus _        = 0
+      strikeBonus (a:b:_) = a + b
+      strikeBonus _       = 0
+  score _    = 0
+
+score5 :: [ Int ] -> Int
+score5 = score where
+  score (x:y:xs) 
+    | x == 10 && length xs == 1 = 10 + strikeBonus (y:xs) -- Case: Last Strike with 2 additional bonus.
+    | x == 10 && length xs > 1  = 10 + strikeBonus (y:xs) + score (y:xs)
+    | x + y == 10               = 10 + spareBonus xs + score xs
+    | otherwise                 = x + y + score xs
+    where
+      spareBonus (a:_)    = a
+      spareBonus _        = 0
+      strikeBonus (a:b:_) = a + b
+      strikeBonus _       = 0
+  score _    = 0
+
+bowlingTest5 :: ([ Int ] -> Int) -> Test
+bowlingTest5 score = "Complex game" ~: 133 ~=? score [4,2,5,3,2,2,10,10,4,5,7,3,2,4,2,8,10,10,5]
+
 
 testBowlingKata :: Test
 testBowlingKata = TestList (map checkOutput scores) where
@@ -303,11 +362,17 @@ testBowlingKata = TestList (map checkOutput scores) where
 -------------------------------------------------------------------------------- 
 
 lcs :: String -> String -> String 
-lcs = error "unimplemented: lcs"
+lcs = undefined -- s1@(x:xs) s2@(y:ys) 
+--   | x == y = 
+--   | otherwise = lcs s1 ys 
 
 testLcs :: Test
-testLcs = "Lcs" ~: TestList [ lcs "Advanced" "Advantaged" ~?= "Advaned",
-    lcs "abcd" "acbd" ~?= "acd" ]
+testLcs = "Lcs" ~: 
+   TestList [ lcs "Advanced" "Advantaged" ~?= "Advaned"]
+--              lcs "abcd" "acbd" ~?= "acd",
+--              lcs "aaaAbaa" "abaaaa" ~?= "aaaaa",
+--              lcs "" "abc" ~?= "" ]
+
 
 
 

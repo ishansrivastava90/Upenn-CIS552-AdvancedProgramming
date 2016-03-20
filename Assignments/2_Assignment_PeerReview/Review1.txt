@@ -1,0 +1,50 @@
+Review for submission : #8
+
+Answer the following questions about this submission:
+
+1. Does the solution actually divide into to generic functions plus a specific
+instance for transforming plays?
+Yes. Generic functions for XML Processing and then specific instances
+for handling specific tags of the play.
+ 
+2. Are there parts of their general library that are specific to plays?
+No.
+
+3. Is the specific part "short"? Is it easy to see the format of the specific
+transformation from this code. i.e. just looking at this code, how well can
+you tell what the input structure looks like? Or the output structure?
+The specific is relatively long but is modular with each module responsible for different parts
+of the play. It is pretty easy to understand the input and output structure and their correspondence 
+between them.
+ 
+4. How difficult would it be to modify this transformation with new
+information for the play type. i.e. Suppose the input also included
+performance history after the ACTs.
+
+<PERFHISTORY>
+  <PERFORMANCE>
+     <LOCATION>Philadelphia, PA</LOCATION>
+     <DATE>September 19, 2015</DATE>
+  </PERFORMANCE>
+  -- more PERFORMANCES
+ </PERFHISTORY>
+ 
+And you would like to transform this part to:
+ 
+<h3>Performed at</h3>
+<ol>
+<li> Philadelphia, PA on September 19, 2015 </li>
+ ...
+</ol>
+How would you modify their solution to do this?
+I would just write a couple of new modules which would call their library methods to extract the information
+from XML tags and wrapping in html specific tags in accordance with their structure
+1 Module to wrap Location and date for every performance with <li> tags 1 more module to wrap PERFHISTORY 
+within <h3> tags along with text "Performed at"
+
+5. What suggestions can you make to improve their design?
+Looks fine to me. Couldn't come up with any significant design improvements. 
+ 
+6. What is the best part of their design?
+The specific instances are very modular and clearly defined. Going through them once was enough to understand the
+functionality of every function.

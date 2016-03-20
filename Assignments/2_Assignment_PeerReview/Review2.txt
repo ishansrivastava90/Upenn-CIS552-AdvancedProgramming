@@ -1,0 +1,54 @@
+Review for submission : #12
+
+Answer the following questions about this submission:
+
+1. Does the solution actually divide into to generic functions plus a specific
+instance for transforming plays?
+- No. Most of the generic functions were interspersed with specific application logic 
+of individual tags.
+ 
+2. Are there parts of their general library that are specific to plays?
+- Yes.
+ 
+3. Is the specific part "short"? Is it easy to see the format of the specific
+transformation from this code. i.e. just looking at this code, how well can
+you tell what the input structure looks like? Or the output structure?
+- Most of the solution is application specific. So, it's pretty long. It's a tad difficult. 
+A glance just reveals the tags that the XML input can have without any insight about 
+their structure. You have to inspect every instance to get a sense of the whole input.
+ 
+4. How difficult would it be to modify this transformation with new
+information for the play type. i.e. Suppose the input also included
+performance history after the ACTs.
+
+<PERFHISTORY>
+  <PERFORMANCE>
+     <LOCATION>Philadelphia, PA</LOCATION>
+     <DATE>September 19, 2015</DATE>
+  </PERFORMANCE>
+  -- more PERFORMANCES
+ </PERFHISTORY>
+ 
+And you would like to transform this part to:
+ 
+<h3>Performed at</h3>
+<ol>
+<li> Philadelphia, PA on September 19, 2015 </li>
+ ...
+</ol>
+How would you modify their solution to do this?
+- The solution is very application specific with high coupling. It would be difficult to modify the existing
+code to include this function. I would probably write a new function for this block independently as their 
+abstraction is not general enough and not applicable to this new block.
+
+
+5. What suggestions can you make to improve their design?
+- It would be great to have more generic abstractions which make the solution more extensible to future
+modifications. Like having an abstraction for extracting from an element level tag, dealing with complex
+tags that have list of tags, wrapping the text in a specified tag etc. It would also help if the broke down
+the 1 abstraction to more modular chunks that could be applied more generally
+ 
+6. What is the best part of their design?
+- The functions were following good convention which made them readable even though when they were highly 
+coupled with application specific logic
+ 
